@@ -1,4 +1,4 @@
-import codecs
+import timeit
 from BitVector import *
 
 Sbox = (
@@ -193,27 +193,34 @@ def mix_columns():
             state_matrix[i][j] = BitVector(intVal=res[i][j],size=8).get_bitvector_in_hex()
 
 
+def encrypt():
+    curr_round = 0
+    add_round_key(curr_round)
+    curr_round = curr_round + 1
+
+    while curr_round < 11:
+        byte_substitution()
+        shift_rows()
+        if curr_round != 10:
+            mix_columns()
+        add_round_key(curr_round)
+        curr_round = curr_round + 1
+
+
 state_matrix = input_key("plain text")
 key_matrix = input_key("ASCII key")
 
 words = make_four_words(key_matrix)
 
+start = timeit.default_timer()
 for r in range(10):
     generate_round_key(r)
+stop = timeit.default_timer()
 
-
-
-curr_round = 0
-
-add_round_key(curr_round)
-curr_round = curr_round + 1
-
-while curr_round < 11:
-    byte_substitution()
-    shift_rows()
-    if curr_round != 10:
-        mix_columns()
-    add_round_key(curr_round)
-    curr_round = curr_round + 1
-
+start1 = timeit.default_timer()
+encrypt()
+stop1 = timeit.default_timer()
 print(state_matrix)
+
+print("Key Scheduling time : " + str(stop-start))
+print("Encryption time : " + str(stop1-start1))
