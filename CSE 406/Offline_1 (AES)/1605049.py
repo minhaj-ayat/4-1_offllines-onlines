@@ -1,4 +1,7 @@
+import binascii
 import timeit
+import os
+from shutil import copyfile
 from BitVector import *
 
 Sbox = (
@@ -67,13 +70,54 @@ def make_matrix(string):
     return m
 
 
-def input_key(inp):
-    key = input("Enter " + inp + " : ").zfill(16)
+def make_matrix_2(arr):
+    m = [
+        [arr[0], arr[4], arr[8], arr[12]],
+        [arr[1], arr[5], arr[9], arr[13]],
+        [arr[2], arr[6], arr[10], arr[14]],
+        [arr[3], arr[7], arr[11], arr[15]]
+    ]
+    return m
+
+
+def input_text(txt, t):
+    txt = txt.ljust(16)
+    print("Text---")
+
+    if t:
+        print(txt + "  [In ASCII]")
+        hk = ""
+        for ch in txt:
+            hk += hex(ord(ch)).split('x')[1]
+        print(hk + "   [In HEX]")
+        km = make_matrix(hk)
+        return km
+
+    else:
+        print(txt.decode(errors="replace") + (" [In ASCII]"))
+
+        hk = [""] * 16
+        ai = 0
+        for ch in txt:
+            sa = hex(ch).split("x")[1]
+            sa = sa if len(sa) > 1 else "0"+sa
+            hk[ai] = sa
+            ai += 1
+        print(hk)
+        km = make_matrix_2(hk)
+        return km
+
+
+def input_key():
+    key = input("Enter key : ").zfill(16)
     key = key[:-(len(key) - 16)] if (len(key) - 16) > 0 else key
+    print("Key---")
+    print(key + "  [In ASCII]")
 
     hk = ""
     for ch in key:
         hk += hex(ord(ch)).split('x')[1]
+    print(hk + "   [In HEX]")
     km = make_matrix(hk)
     return km
 
@@ -138,9 +182,9 @@ def print_keys():
         rn = rn + 4
 
 
-def add_round_key(rnd):
+def add_round_key(rnd, inv):
     global state_matrix
-    ind = 4 * rnd
+    ind = 4 * rnd if not inv else 40 - 4 * rnd
     km = make_matrix(words[ind] + words[ind + 1] + words[ind + 2] + words[ind + 3])
     for i in range(4):
         for j in range(4):
@@ -149,40 +193,49 @@ def add_round_key(rnd):
             state_matrix[i][j] = x
 
 
-def byte_substitution():
+def byte_substitution(inv):
     for i in range(4):
         for j in range(4):
             b = BitVector(hexstring=state_matrix[i][j])
             int_val = b.intValue()
-            s = Sbox[int_val]
+            if not inv:
+                s = Sbox[int_val]
+            else:
+                s = InvSbox[int_val]
             s = BitVector(intVal=s, size=8)
             state_matrix[i][j] = s.get_bitvector_in_hex()
 
 
-def shift_rows():
+def shift_rows(inv):
     global state_matrix
     string = state_matrix[0][0] + state_matrix[0][1] + state_matrix[0][2] + state_matrix[0][3]
     for i in range(3):
-        st = state_matrix[i+1][0] + state_matrix[i+1][1] + state_matrix[i+1][2] + state_matrix[i+1][3]
+        st = state_matrix[i + 1][0] + state_matrix[i + 1][1] + state_matrix[i + 1][2] + state_matrix[i + 1][3]
         w = BitVector(hexstring=st).intValue()
-        w = ((w << (8 + 8 * i)) | (w >> (32 - (8 + 8 * i)))) & 0xFFFFFFFF
+        if not inv:
+            w = ((w << (8 + 8 * i)) | (w >> (32 - (8 + 8 * i)))) & 0xFFFFFFFF
+        else:
+            w = ((w >> (8 + 8 * i)) | (w << (32 - (8 + 8 * i)))) & 0xFFFFFFFF
         w = BitVector(intVal=w, size=32).get_bitvector_in_hex()
         string = string + w
 
     state_matrix = [
-                    [string[0:2], string[2:4], string[4:6], string[6:8]],
-                    [string[8:10], string[10:12], string[12:14], string[14:16]],
-                    [string[16:18], string[18:20], string[20:22], string[22:24]],
-                    [string[24:26], string[26:28], string[28:30], string[30:32]]
+        [string[0:2], string[2:4], string[4:6], string[6:8]],
+        [string[8:10], string[10:12], string[12:14], string[14:16]],
+        [string[16:18], string[18:20], string[20:22], string[22:24]],
+        [string[24:26], string[26:28], string[28:30], string[30:32]]
     ]
 
 
-def mix_columns():
+def mix_columns(inv):
     res = [[0 for x in range(4)] for y in range(4)]
     for i in range(4):
         for j in range(4):
             for k in range(4):
-                bv1 = Mixer[i][k]
+                if not inv:
+                    bv1 = Mixer[i][k]
+                else:
+                    bv1 = InvMixer[i][k]
                 bv2 = BitVector(hexstring=state_matrix[k][j])
                 bv3 = bv1.gf_multiply_modular(bv2, AES_modulus, 8)
                 bv3 = bv3.intValue()
@@ -190,37 +243,213 @@ def mix_columns():
 
     for i in range(4):
         for j in range(4):
-            state_matrix[i][j] = BitVector(intVal=res[i][j],size=8).get_bitvector_in_hex()
+            state_matrix[i][j] = BitVector(intVal=res[i][j], size=8).get_bitvector_in_hex()
 
 
 def encrypt():
     curr_round = 0
-    add_round_key(curr_round)
+    add_round_key(curr_round, False)
     curr_round = curr_round + 1
 
     while curr_round < 11:
-        byte_substitution()
-        shift_rows()
+        byte_substitution(False)
+        shift_rows(False)
         if curr_round != 10:
-            mix_columns()
-        add_round_key(curr_round)
+            mix_columns(False)
+        add_round_key(curr_round, False)
         curr_round = curr_round + 1
 
 
-state_matrix = input_key("plain text")
-key_matrix = input_key("ASCII key")
+def decrypt():
+    curr_round = 0
+    add_round_key(curr_round, True)
+    curr_round = curr_round + 1
 
-words = make_four_words(key_matrix)
+    while curr_round < 11:
+        shift_rows(True)
+        byte_substitution(True)
+        add_round_key(curr_round, True)
+        if curr_round != 10:
+            mix_columns(True)
+        curr_round = curr_round + 1
 
-start = timeit.default_timer()
-for r in range(10):
-    generate_round_key(r)
-stop = timeit.default_timer()
 
-start1 = timeit.default_timer()
-encrypt()
-stop1 = timeit.default_timer()
-print(state_matrix)
+def matrix_to_text(mat, inv, t):
+    if not inv:
+        print("Ciphered Text--- ")
+    else:
+        print("Deciphered Text--- ")
 
-print("Key Scheduling time : " + str(stop-start))
-print("Encryption time : " + str(stop1-start1))
+    if t:
+        st = ""
+        for i in range(4):
+            for j in range(4):
+                st = st + mat[j][i]
+
+        print(st + "  [In HEX]")
+        ft = bytearray.fromhex(st).decode(errors="replace")
+        print(ft + " [In ASCII]")
+        return ft
+
+    else:
+        st = ""
+        for i in range(4):
+            for j in range(4):
+                st = st + (mat[j][i])
+
+        print(st + ("  [In HEX]"))
+        ft = binascii.unhexlify(st)
+        print(ft)
+        return ft
+
+
+def process_text():
+    global state_matrix
+    global words
+    text = input("Enter plain text: ")
+    key_matrix = input_key()
+
+    cnt = 0
+    lc = len(text) / 16
+    index = 0
+    final_val = ""
+    while cnt <= lc:
+        state_matrix = input_text(text[index: index + 16],True)
+        if cnt == lc and len(text) % 16 != 0:
+            state_matrix = input_text(text[index:],True)
+        elif cnt == lc and len(text) % 16 == 0:
+            break
+        index += 16
+        words = make_four_words(key_matrix)
+        cnt += 1
+
+        start = timeit.default_timer()
+        for r in range(10):
+            generate_round_key(r)
+        stop = timeit.default_timer()
+
+        start1 = timeit.default_timer()
+        encrypt()
+        stop1 = timeit.default_timer()
+        matrix_to_text(state_matrix, False,True)
+
+        start2 = timeit.default_timer()
+        decrypt()
+        stop2 = timeit.default_timer()
+        final_val += matrix_to_text(state_matrix, True,True)
+
+        print("\nEncryption Time:")
+        print("Key Scheduling time : " + str(stop - start))
+        print("Encryption time : " + str(stop1 - start1))
+        print("Decryption time : " + str(stop2 - start2))
+        print("\n")
+
+    print("Merged Output: " + final_val + "\n")
+
+
+def process_file():
+    global state_matrix
+    global words
+    fn = input("Enter file name: ")
+    file = open(fn, "r", errors="replace",encoding='utf-8')
+    text = file.read()
+    print(text)
+    file.close()
+    key_matrix = input_key()
+
+    cnt = 0
+    lc = len(text) / 16
+    index = 0
+    final_val = ""
+    while cnt <= lc:
+        state_matrix = input_text(text[index: index + 16])
+        if cnt == lc and len(text) % 16 != 0:
+            state_matrix = input_text(text[index:])
+        elif cnt == lc and len(text) % 16 == 0:
+            break
+        index += 16
+        words = make_four_words(key_matrix)
+        cnt += 1
+
+        start = timeit.default_timer()
+        for r in range(10):
+            generate_round_key(r)
+        stop = timeit.default_timer()
+
+        start1 = timeit.default_timer()
+        encrypt()
+        stop1 = timeit.default_timer()
+        matrix_to_text(state_matrix, False)
+
+        start2 = timeit.default_timer()
+        decrypt()
+        stop2 = timeit.default_timer()
+        final_val += matrix_to_text(state_matrix, True)
+
+        print("\nEncryption Time:")
+        print("Key Scheduling time : " + str(stop - start))
+        print("Encryption time : " + str(stop1 - start1))
+        print("Decryption time : " + str(stop2 - start2))
+        print("\n")
+
+    print(final_val)
+    file2 = open(fn.split(".")[0]+"_decrypt."+fn.split(".")[1], "w")
+    file2.write(final_val)
+    file2.close()
+
+
+def process_file2():
+    global state_matrix
+    global words
+    fn = input("Enter file name: ")
+    key_matrix = input_key()
+
+    final_val = b""
+    file = open(fn, "rb")
+    while True:
+        text = file.read(16)
+        print(text)
+        if not text:
+            break
+        state_matrix = input_text(text,False)
+        words = make_four_words(key_matrix)
+
+        start = timeit.default_timer()
+        for r in range(10):
+            generate_round_key(r)
+        stop = timeit.default_timer()
+
+        start1 = timeit.default_timer()
+        encrypt()
+        stop1 = timeit.default_timer()
+        matrix_to_text(state_matrix, False,False)
+
+        start2 = timeit.default_timer()
+        decrypt()
+        stop2 = timeit.default_timer()
+        final_val += matrix_to_text(state_matrix, True,False)
+
+        print("\nEncryption Time:")
+        print("Key Scheduling time : " + str(stop - start))
+        print("Encryption time : " + str(stop1 - start1))
+        print("Decryption time : " + str(stop2 - start2))
+        print("\n")
+
+    file.close()
+    print(final_val)
+    file2 = open(fn.split(".")[0]+"_decrypt."+fn.split(".")[1], "wb")
+    file2.write(final_val)
+    file2.close()
+
+
+state_matrix = [["" * 4] * 4]
+words = ["" * 44]
+
+print("1. Enter Plain Text")
+print("2. Enter File")
+inp = input("Choice: ")
+
+if int(inp) == 1:
+    process_text()
+else:
+    process_file2()
