@@ -1,7 +1,5 @@
 import binascii
 import timeit
-import os
-from shutil import copyfile
 from BitVector import *
 
 Sbox = (
@@ -100,7 +98,7 @@ def input_text(txt, t):
         ai = 0
         for ch in txt:
             sa = hex(ch).split("x")[1]
-            sa = sa if len(sa) > 1 else "0"+sa
+            sa = sa if len(sa) > 1 else "0" + sa
             hk[ai] = sa
             ai += 1
         print(hk)
@@ -264,6 +262,7 @@ def decrypt():
     curr_round = 0
     add_round_key(curr_round, True)
     curr_round = curr_round + 1
+    print(state_matrix)
 
     while curr_round < 11:
         shift_rows(True)
@@ -272,6 +271,7 @@ def decrypt():
         if curr_round != 10:
             mix_columns(True)
         curr_round = curr_round + 1
+        print(state_matrix)
 
 
 def matrix_to_text(mat, inv, t):
@@ -303,6 +303,10 @@ def matrix_to_text(mat, inv, t):
         return ft
 
 
+def print_words():
+    print(words)
+
+
 def process_text():
     global state_matrix
     global words
@@ -314,9 +318,9 @@ def process_text():
     index = 0
     final_val = ""
     while cnt <= lc:
-        state_matrix = input_text(text[index: index + 16],True)
+        state_matrix = input_text(text[index: index + 16], True)
         if cnt == lc and len(text) % 16 != 0:
-            state_matrix = input_text(text[index:],True)
+            state_matrix = input_text(text[index:], True)
         elif cnt == lc and len(text) % 16 == 0:
             break
         index += 16
@@ -331,12 +335,12 @@ def process_text():
         start1 = timeit.default_timer()
         encrypt()
         stop1 = timeit.default_timer()
-        matrix_to_text(state_matrix, False,True)
+        matrix_to_text(state_matrix, False, True)
 
         start2 = timeit.default_timer()
         decrypt()
         stop2 = timeit.default_timer()
-        final_val += matrix_to_text(state_matrix, True,True)
+        final_val += matrix_to_text(state_matrix, True, True)
 
         print("\nEncryption Time:")
         print("Key Scheduling time : " + str(stop - start))
@@ -345,57 +349,6 @@ def process_text():
         print("\n")
 
     print("Merged Output: " + final_val + "\n")
-
-
-def process_file():
-    global state_matrix
-    global words
-    fn = input("Enter file name: ")
-    file = open(fn, "r", errors="replace",encoding='utf-8')
-    text = file.read()
-    print(text)
-    file.close()
-    key_matrix = input_key()
-
-    cnt = 0
-    lc = len(text) / 16
-    index = 0
-    final_val = ""
-    while cnt <= lc:
-        state_matrix = input_text(text[index: index + 16])
-        if cnt == lc and len(text) % 16 != 0:
-            state_matrix = input_text(text[index:])
-        elif cnt == lc and len(text) % 16 == 0:
-            break
-        index += 16
-        words = make_four_words(key_matrix)
-        cnt += 1
-
-        start = timeit.default_timer()
-        for r in range(10):
-            generate_round_key(r)
-        stop = timeit.default_timer()
-
-        start1 = timeit.default_timer()
-        encrypt()
-        stop1 = timeit.default_timer()
-        matrix_to_text(state_matrix, False)
-
-        start2 = timeit.default_timer()
-        decrypt()
-        stop2 = timeit.default_timer()
-        final_val += matrix_to_text(state_matrix, True)
-
-        print("\nEncryption Time:")
-        print("Key Scheduling time : " + str(stop - start))
-        print("Encryption time : " + str(stop1 - start1))
-        print("Decryption time : " + str(stop2 - start2))
-        print("\n")
-
-    print(final_val)
-    file2 = open(fn.split(".")[0]+"_decrypt."+fn.split(".")[1], "w")
-    file2.write(final_val)
-    file2.close()
 
 
 def process_file2():
@@ -411,7 +364,7 @@ def process_file2():
         print(text)
         if not text:
             break
-        state_matrix = input_text(text,False)
+        state_matrix = input_text(text, False)
         words = make_four_words(key_matrix)
 
         start = timeit.default_timer()
@@ -422,12 +375,12 @@ def process_file2():
         start1 = timeit.default_timer()
         encrypt()
         stop1 = timeit.default_timer()
-        matrix_to_text(state_matrix, False,False)
+        matrix_to_text(state_matrix, False, False)
 
         start2 = timeit.default_timer()
         decrypt()
         stop2 = timeit.default_timer()
-        final_val += matrix_to_text(state_matrix, True,False)
+        final_val += matrix_to_text(state_matrix, True, False)
 
         print("\nEncryption Time:")
         print("Key Scheduling time : " + str(stop - start))
@@ -437,9 +390,38 @@ def process_file2():
 
     file.close()
     print(final_val)
-    file2 = open(fn.split(".")[0]+"_decrypt."+fn.split(".")[1], "wb")
+    file2 = open(fn.split(".")[0] + "_decrypt." + fn.split(".")[1], "wb")
     file2.write(final_val)
     file2.close()
+
+
+def generate_s_box():
+    sbox = [["" for i in range(16)] for j in range(16)]
+    inv_sbox = [["" for i in range(16)] for j in range(16)]
+    for i in range(1, 256):
+        hs = hex(i).split("x")[1]
+        m = BitVector(hexstring=hs).gf_MI(BitVector(bitstring="100011011"), 8).intValue()
+        sv = hex(m ^ (((m << 1) | (m >> 7)) & 0xFF) ^ (((m << 2) | (m >> 6)) & 0xFF) ^ (
+                    ((m << 3) | (m >> 5)) & 0xFF) ^ (((m << 4) | (m >> 4)) & 0xFF) ^ 0x63)
+        sv = sv if len(sv)>3 else sv[0:2]+"0"+sv[-1]
+        sbox[(int(i / 16))][i % 16] = sv
+
+    sbox[0][0] = "0x63"
+    for e in sbox:
+        print(e)
+
+    for i in range(16):
+        for j in range(16):
+            el = sbox[i][j]
+            r = el[2:3]
+            c = el[3:4]
+            print(r+"->"+c)
+            r = int(r, 16)
+            c = int(c, 16)
+            inv_sbox[r][c] = "0x"+hex(i).split("x")[1]+hex(j).split("x")[1]
+
+    for e in inv_sbox:
+        print(e)
 
 
 state_matrix = [["" * 4] * 4]
@@ -447,9 +429,12 @@ words = ["" * 44]
 
 print("1. Enter Plain Text")
 print("2. Enter File")
+print("3. Generate S-box and Inv S-box")
 inp = input("Choice: ")
 
 if int(inp) == 1:
     process_text()
+elif int(inp) == 3:
+    generate_s_box()
 else:
     process_file2()
