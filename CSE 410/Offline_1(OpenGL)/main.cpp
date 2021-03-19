@@ -20,6 +20,7 @@ int drawaxes;
 int rotatesphere;
 double angle,angle2,angle3,angle4;
 double bigrad, smallrad;
+int slices,stacks;
 
 
 struct point
@@ -370,26 +371,26 @@ void mydraw()
     glPushMatrix();
     {
         glRotatef(angle,0,1,0);
-        drawupperSphere(bigrad,20,15);
+        drawupperSphere(bigrad,slices,stacks);
         //drawlowerSphere(50,20,15);
     }
 
     {
         glRotatef(angle2,1,0,0);
-        drawlowerSphere(bigrad,20,15);
+        drawlowerSphere(bigrad,slices,stacks);
     }
 
     {
         glTranslatef(0,0,-(bigrad+smallrad));
         glRotatef(angle3,1,0,0);
         glRotatef(angle4,0,0,1);
-        drawupperSphere(smallrad,20,15);
+        drawupperSphere(smallrad,slices,stacks);
         for(int k=1;k<=10;k++)
         {
-            drawCyllinder(smallrad,20,15);
+            drawCyllinder(smallrad,slices,stacks);
             glTranslatef(0,0,-(smallrad));
         }
-        drawinvertSphere(smallrad,20,15);
+        drawinvertSphere(smallrad,slices,stacks);
     }
 
     {
@@ -649,6 +650,8 @@ void init(){
 	angle4=0;
 	bigrad = 50;
 	smallrad = 20;
+	slices = 50;
+	stacks = 70;
 
 	//clear the screen
 	glClearColor(0,0,0,0);
