@@ -2,14 +2,12 @@
 #include<stdlib.h>
 #include<iostream>
 #include<math.h>
-#include<time.h>
 
 #include <windows.h>
 #include <glut.h>
 
 #define pi (2*acos(0.0))
 
-#define slength 100
 #define konst 4
 #define rdeg 4
 
@@ -23,7 +21,6 @@ int rotatesphere;
 double angle,angle2,angle3,angle4;
 double bigrad, smallrad;
 int slices,stacks;
-double xv,yv,zv;
 
 
 struct point
@@ -36,19 +33,9 @@ struct point
 	{
 	    x = a; y = b;  z = c;
 	}
-
-	void setpoint(double a,double b,double c)
-	{
-	    x = a; y = b;  z = c;
-	}
 };
 
-struct point positions[5];
-double xspeeds[5];
-double yspeeds[5];
-
-
-struct point pos = point(0,0,200);
+struct point pos = point(50,10,-400);
 
 struct point u = point(0,1,0);
 struct point r = point(1,0,0);
@@ -130,55 +117,13 @@ void drawGrid()
 
 void drawSquare(double a)
 {
-    glColor3f(0.0,1.0,0.0);
+    //glColor3f(1.0,0.0,0.0);
 	glBegin(GL_QUADS);{
 		glVertex3f( a, a,2);
 		glVertex3f( a,-a,2);
 		glVertex3f(-a,-a,2);
 		glVertex3f(-a, a,2);
 	}glEnd();
-}
-
-void drawmySquare(double a)
-{
-    glColor3f(0, 1, 0);
-    glBegin(GL_LINES);{
-        glVertex3f( a/2,a/2,0);
-        glVertex3f(-a/2,a/2,0);
-
-        glVertex3f( a/2,a/2,0);
-        glVertex3f(a/2,-a/2,0);
-
-        glVertex3f( -a/2,a/2,0);
-        glVertex3f(-a/2,-a/2,0);
-
-        glVertex3f( -a/2,-a/2,0);
-        glVertex3f(a/2,-a/2,0);
-    }glEnd();
-}
-
-
-void drawmyCircle(double radius,int segments)
-{
-    int i;
-    struct point points[100];
-    //generate points
-    for(i=0;i<=segments;i++)
-    {
-        points[i].x=radius*cos(((double)i/(double)segments)*2*pi);
-        points[i].y=radius*sin(((double)i/(double)segments)*2*pi);
-    }
-    //draw segments using generated points
-    for(i=0;i<segments;i++)
-    {
-        //glColor3f(1,0,0);
-        glBegin(GL_LINES);
-        {
-			glVertex3f(points[i].x,points[i].y,0);
-			glVertex3f(points[i+1].x,points[i+1].y,0);
-        }
-        glEnd();
-    }
 }
 
 
@@ -422,13 +367,38 @@ void drawSphere(double radius,int slices,int stacks)
 
 void mydraw()
 {
-    drawmySquare(slength);
-    glColor3f(1,0,0);
-    drawmyCircle(bigrad,slices);
+    //glColor3f(1,1,1);
+    glPushMatrix();
+    {
+        glRotatef(angle,0,1,0);
+        drawupperSphere(bigrad,slices,stacks);
+        //drawlowerSphere(50,20,15);
+    }
 
-    glColor3f(1,0.5,0);
-    glTranslatef(positions[0].x,  positions[0].y,  0);
-    drawmyCircle(smallrad,slices);
+    {
+        glRotatef(angle2,1,0,0);
+        drawlowerSphere(bigrad,slices,stacks);
+    }
+
+    {
+        glTranslatef(0,0,-(bigrad+smallrad));
+        glRotatef(angle3,1,0,0);
+        glRotatef(angle4,0,0,1);
+        drawupperSphere(smallrad,slices,stacks);
+        for(int k=1;k<=10;k++)
+        {
+            drawCyllinder(smallrad,slices,stacks);
+            glTranslatef(0,0,-(smallrad));
+        }
+        drawinvertSphere(smallrad,slices,stacks);
+    }
+
+    {
+        glPopMatrix();
+        glColor3f(1,1,0);
+        glTranslatef(0,0,-(2*bigrad+11*smallrad+400));
+        drawSquare(250);
+    }
 }
 
 void drawSS()
@@ -475,8 +445,7 @@ void keyboardListener(unsigned char key, int x,int y){
         case '2':
 			l = rotate_vector(l,u,r,rdeg,false);
 			r = rotate_vector(r,u,l,rdeg,true);
-			cout<<positions[0].x<<","<<positions[0].y<<"\n";
-			cout<<xspeeds[0]<<","<<yspeeds[0]<<"\n";
+			cout<<pos.x<<","<<pos.y<<","<<pos.z<<"\n";
 			break;
 
 		case '3':
@@ -500,6 +469,44 @@ void keyboardListener(unsigned char key, int x,int y){
 			break;
 
 
+        case 'q':
+            angle+=5;
+            if(angle >= 45) angle = 45;
+            break;
+
+        case 'w':
+            angle-=5;
+            if(angle <= -45) angle = -45;
+            break;
+
+        case 'e':
+            angle2+=5;
+            if(angle2 >= 45) angle2 = 45;
+            break;
+
+        case 'r':
+            angle2-=5;
+            if(angle2 <= -45) angle2 = -45;
+            break;
+
+        case 'a':
+            angle3+=5;
+            if(angle3 >= 35) angle3 = 35;
+            break;
+
+        case 's':
+            angle3-=5;
+            if(angle3 <= -35) angle3 = -35;
+            break;
+
+        case 'd':
+            angle4+=5;
+            break;
+
+        case 'f':
+            angle4-=5;
+            break;
+
 		default:
 			break;
 	}
@@ -509,26 +516,24 @@ void keyboardListener(unsigned char key, int x,int y){
 void specialKeyListener(int key, int x,int y){
 	switch(key){
 		case GLUT_KEY_DOWN:		//down arrow key
-            xspeeds[0] -= 0.001;
-            yspeeds[0] -= 0.001;
+			pos = subpoint(pos,scaler_mult(konst,l));
 			break;
 		case GLUT_KEY_UP:		// up arrow key
-            xspeeds[0] += 0.001;
-            yspeeds[0] += 0.001;
+			pos = addpoint(pos,scaler_mult(konst,l));
 			break;
 
 		case GLUT_KEY_RIGHT:
-
+			pos = subpoint(pos,scaler_mult(konst,r));
 			break;
 		case GLUT_KEY_LEFT:
-
+			pos = addpoint(pos,scaler_mult(konst,r));
 			break;
 
 		case GLUT_KEY_PAGE_UP:
-
+		    pos = addpoint(pos,scaler_mult(konst,u));
 			break;
 		case GLUT_KEY_PAGE_DOWN:
-
+		    pos = subpoint(pos,scaler_mult(konst,u));
 			break;
 
 		case GLUT_KEY_INSERT:
@@ -591,7 +596,7 @@ void display(){
 
 	//gluLookAt(100,100,100,	0,0,0,	0,0,1);
 	//gluLookAt(200*cos(cameraAngle), 200*sin(cameraAngle), cameraHeight,		0,0,0,		0,0,1);
-	gluLookAt(pos.x,pos.y,pos.z,    0,0,0,	u.x,u.y,u.z);
+	gluLookAt(pos.x,pos.y,pos.z,    pos.x+l.x,pos.y+l.y,pos.z+l.z,	u.x,u.y,u.z);
 
 
 	//again select MODEL-VIEW
@@ -627,8 +632,6 @@ void display(){
 
 
 void animate(){
-    positions[0].y += yspeeds[0];
-    positions[0].x += xspeeds[0];
 	//angle+=0.05;
 	//codes for any changes in Models, Camera
 	glutPostRedisplay();
@@ -637,7 +640,7 @@ void animate(){
 void init(){
 	//codes for initialization
 	drawgrid=0;
-	drawaxes=0;
+	drawaxes=1;
 	rotatesphere = 0;
 	cameraHeight=150.0;
 	cameraAngle=1.0;
@@ -645,19 +648,10 @@ void init(){
 	angle2=0;
 	angle3=0;
 	angle4=0;
-
-	bigrad = 35;
-	smallrad = 6;
-	slices = 30;
-	xv=0;yv=0;zv=0;
-	for(int k =0; k<5;k++)
-    {
-        positions[k].x = -slength/2 + smallrad;
-        positions[k].y = -slength/2 + smallrad;
-        xspeeds[k] =  ((double) rand() / (RAND_MAX))/200;
-        yspeeds[k] =  ((double) rand() / (RAND_MAX))/500;
-        cout<<xspeeds[k]<<","<<yspeeds[k]<<"\n";
-    }
+	bigrad = 50;
+	smallrad = 20;
+	slices = 50;
+	stacks = 70;
 
 	//clear the screen
 	glClearColor(0,0,0,0);
@@ -672,7 +666,7 @@ void init(){
 	glLoadIdentity();
 
 	//give PERSPECTIVE parameters
-	gluPerspective(400,	1,	1,	10000.0);
+	gluPerspective(400,	1.2,	1,	10000.0);
 	//field of view in the Y (vertically)
 	//aspect ratio that determines the field of view in the X direction (horizontally)
 	//near distance
@@ -680,7 +674,6 @@ void init(){
 }
 
 int main(int argc, char **argv){
-    srand(time(0));
 	glutInit(&argc,argv);
 	glutInitWindowSize(500, 500);
 	glutInitWindowPosition(0, 0);
