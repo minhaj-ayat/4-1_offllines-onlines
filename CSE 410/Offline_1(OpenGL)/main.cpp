@@ -24,8 +24,12 @@ double angle,angle2,angle3,angle4;
 double bigrad, smallrad;
 int slices,stacks;
 double xv,yv,zv;
-double dx =0, dy=0;
+double dx[5],dy[5];
 bool pause;
+bool created[5];
+const clock_t btime = clock();
+double et;
+int all;
 
 struct point
 {
@@ -436,8 +440,27 @@ void mydraw()
     drawmyCircle(bigrad,slices);
 
     glColor3f(1,0.5,0);
-    glTranslatef(positions[0].x,  positions[0].y,  0);
-    drawmyCircle(smallrad,slices);
+    /*for(int c=0;c<5;c++)
+    {
+        glPushMatrix();
+        glTranslatef(positions[c].x,  positions[c].y,  0);
+        drawmyCircle(smallrad,slices);
+        glPopMatrix();
+    }*/
+
+    et = (clock() - btime)/CLOCKS_PER_SEC;
+    for(int c=0;c<5;c++)
+    {
+        if(et >= c)
+        {
+            //cout<<"hhh";
+            glPushMatrix();
+            glTranslatef(positions[c].x,  positions[c].y,  0);
+            drawmyCircle(smallrad,slices);
+            glPopMatrix();
+            created[c] = 1;
+        }
+    }
 }
 
 void drawSS()
@@ -491,10 +514,20 @@ void keyboardListener(unsigned char key, int x,int y){
 void specialKeyListener(int key, int x,int y){
 	switch(key){
 		case GLUT_KEY_DOWN:		//down arrow key
-            speeds[0] -= 0.001;
+            for(int c=0;c<5;c++)
+            {
+                speeds[c] -= 0.001;
+                if(speeds[c]<=0.001)
+                    speeds[c] = 0.001;
+            }
 			break;
 		case GLUT_KEY_UP:		// up arrow key
-            speeds[0] += 0.001;
+            for(int c=0;c<5;c++)
+            {
+                speeds[c] += 0.001;
+                if(speeds[c]>=0.1)
+                    speeds[c] = 0.1;
+            }
 			break;
 
 		case GLUT_KEY_RIGHT:
@@ -607,42 +640,46 @@ void display(){
 
 
 void animate(){
-    if(!pause)
+    for(int c=0; c<5;c++)
     {
-        dx = speeds[0]*cos(angles[0]*(pi/180));
-        dy = speeds[0]*sin(angles[0]*(pi/180));
+        d.setpoint(dx[c] , dy[c], 0);
+        n.setpoint(0-positions[c].x , 0-positions[c].y, 0);
+        double nv = vecval(n);
+        n.setpoint((0-positions[c].x)/nv, (0-positions[c].y)/nv, 0);
+        r = subpoint(d, scaler_mult(2*(dx[c]*n.x + dy[c]*n.y),n));
+        double nar = acos((n.x*r.x + n.y*r.y)/(nv*vecval(r)));
 
-        positions[0].x += dx;
-        positions[0].y += dy;
-    }
+        if((positions[c].x+smallrad >= slength/2 || positions[c].x-smallrad <= -slength/2) && (positions[c].y+smallrad >= slength/2 || positions[c].y-smallrad <= -slength/2))
+            angles[c] = 180+angles[c];
+        if(positions[c].x+smallrad >= slength/2 || positions[c].x-smallrad <= -slength/2)
+            angles[c] = 180-angles[c];
+        if(positions[c].y+smallrad >= slength/2 || positions[c].y-smallrad <= -slength/2)
+            angles[c] = -angles[c];
 
-    d.setpoint(dx , dy, 0);
-    n.setpoint(0-positions[0].x , 0-positions[0].y, 0);
-    double nv = vecval(n);
-    n.setpoint((0-positions[0].x)/nv, (0-positions[0].y)/nv, 0);
-    r = subpoint(d, scaler_mult(2*(dx*n.x + dy*n.y),n));
-    double nar = acos((n.x*r.x + n.y*r.y)/(vecval(n)*vecval(r)));
-
-    if((positions[0].x+smallrad >= slength/2 || positions[0].x-smallrad <= -slength/2) && (positions[0].y+smallrad >= slength/2 || positions[0].y-smallrad <= -slength/2))
-        angles[0] = 180+angles[0];
-    if(positions[0].x+smallrad >= slength/2 || positions[0].x-smallrad <= -slength/2)
-        angles[0] = 180-angles[0];
-    if(positions[0].y+smallrad >= slength/2 || positions[0].y-smallrad <= -slength/2)
-        angles[0] = -angles[0];
-
-    if(sqrt(positions[0].x * positions[0].x + positions[0].y * positions[0].y)+smallrad <= bigrad)
-    {
-        if((sqrt(positions[0].x * positions[0].x + positions[0].y * positions[0].y)+smallrad)>bigrad-0.5 &&
-           (sqrt(positions[0].x * positions[0].x + positions[0].y * positions[0].y)+smallrad)<bigrad+0.5 && nar<=pi/2)
+        if(sqrt(positions[c].x * positions[c].x + positions[c].y * positions[c].y)+smallrad <= bigrad)
         {
-            cout<<"Touched";
-            //if(nar == pi/2)
-            //    angles[0] = -angles[0];
-            angles[0] += nar*(180/pi);
-            //else if(positions[0].x <= 0)
-             //   angles[0] = atan(r.y/r.x)*(180/pi);
-            //else
-              //  angles[0] = 180-atan(r.y/r.x)*(180/pi);
+            if((sqrt(positions[c].x * positions[c].x + positions[c].y * positions[c].y)+smallrad)>bigrad-1 &&
+               (sqrt(positions[c].x * positions[c].x + positions[c].y * positions[c].y)+smallrad)<bigrad+1 && nar<=pi/2)
+            {
+                //cout<<"Touched";
+                //if(nar == pi/2)
+                //    angles[0] = -angles[0];
+                angles[c] += nar*(180/pi);
+                //else if(positions[0].x <= 0)
+                 //   angles[0] = atan(r.y/r.x)*(180/pi);
+                //else
+                  //  angles[0] = 180-atan(r.y/r.x)*(180/pi);
+            }
+        }
+
+
+        if(!pause && created[c])
+        {
+            dx[c] = speeds[c]*cos(angles[c]*(pi/180));
+            dy[c] = speeds[c]*sin(angles[c]*(pi/180));
+
+            positions[c].x += dx[c];
+            positions[c].y += dy[c];
         }
     }
 	//angle+=0.05;
@@ -652,7 +689,6 @@ void animate(){
 
 void init(){
 	//codes for initialization
-	cout<<acos(-1)*(180/pi);
 	drawgrid=0;
 	drawaxes=0;
 	rotatesphere = 0;
@@ -664,17 +700,22 @@ void init(){
 	angle4=0;
 	pause = 0;
 
+    all = 0;
+    et = 0;
 	bigrad = 35;
 	smallrad = 6;
 	slices = 30;
 	xv=0;yv=0;zv=0;
-	for(int k =0; k<5;k++)
+	for(int k =0; k<5; k++)
     {
         positions[k].x = -slength/2 + smallrad;
         positions[k].y = -slength/2 + smallrad;
-        speeds[k] =  0.001;
+        speeds[k] =  0.005;
         angles[k] =  ((int) rand()%90);
         incount[k] = 0;
+        dx[k] = 0;
+        dy[k] = 0;
+        created[k] = 0;
         //cout<<xspeeds[k]<<","<<yspeeds[k]<<"\n";
     }
 
@@ -696,6 +737,8 @@ void init(){
 	//aspect ratio that determines the field of view in the X direction (horizontally)
 	//near distance
 	//far distance
+	//et = (clock() - btime)/CLOCKS_PER_SEC;
+	//cout<<et;
 }
 
 int main(int argc, char **argv){
