@@ -27,6 +27,7 @@ double xv,yv,zv;
 double dx[5],dy[5];
 bool pause;
 bool created[5];
+bool entered[5];
 const clock_t btime = clock();
 double et;
 int all;
@@ -95,6 +96,11 @@ struct point rotate_vector(struct point v, struct point axis, struct point other
 double vecval(struct point v)
 {
     return sqrt(v.x*v.x +v.y*v.y + v.z*v.z);
+}
+
+double dist(struct point p1, struct point p2)
+{
+    return sqrt((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y));
 }
 
 
@@ -658,20 +664,41 @@ void animate(){
 
         if(sqrt(positions[c].x * positions[c].x + positions[c].y * positions[c].y)+smallrad <= bigrad)
         {
+            entered[c] = 1;
             if((sqrt(positions[c].x * positions[c].x + positions[c].y * positions[c].y)+smallrad)>bigrad-1 &&
                (sqrt(positions[c].x * positions[c].x + positions[c].y * positions[c].y)+smallrad)<bigrad+1 && nar<=pi/2)
             {
-                //cout<<"Touched";
-                //if(nar == pi/2)
-                //    angles[0] = -angles[0];
                 angles[c] += nar*(180/pi);
-                //else if(positions[0].x <= 0)
-                 //   angles[0] = atan(r.y/r.x)*(180/pi);
-                //else
-                  //  angles[0] = 180-atan(r.y/r.x)*(180/pi);
+            }
+
+            for(int j=0; j<5; j++)
+            {
+                double dst,nv2,nar2;
+                struct point nn,dd,rr;
+                if(c!=j && entered[j])
+                {
+                    dst = dist(positions[c],positions[j]);
+                    if(2*smallrad > dst-0.1 && 2*smallrad < dst + 0.1)
+                    {
+                        nn = subpoint(positions[c],positions[j]);
+                        nv2 = vecval(nn);
+                        nn.setpoint(nn.x/nv2, nn.y/nv2, 0);
+                        rr = subpoint(d, scaler_mult(2*(dx[c]*nn.x + dy[c]*nn.y),nn));
+                        nar2 = acos((nn.x*rr.x + nn.y*rr.y)/(nv2*vecval(rr)));
+                        if(nar2<=pi/2)
+                            angles[c] += nar2*(180/pi);
+
+                        nn = subpoint(positions[j],positions[c]);
+                        nv2 = vecval(nn);
+                        nn.setpoint(nn.x/nv2, nn.y/nv2, 0);
+                        rr = subpoint(d, scaler_mult(2*(dx[j]*nn.x + dy[j]*nn.y),nn));
+                        nar2 = acos((nn.x*rr.x + nn.y*rr.y)/(nv2*vecval(rr)));
+                        if(nar2<=pi/2)
+                            angles[j] += nar2*(180/pi);
+                    }
+                }
             }
         }
-
 
         if(!pause && created[c])
         {
@@ -716,6 +743,7 @@ void init(){
         dx[k] = 0;
         dy[k] = 0;
         created[k] = 0;
+        entered[k] = 0;
         //cout<<xspeeds[k]<<","<<yspeeds[k]<<"\n";
     }
 
