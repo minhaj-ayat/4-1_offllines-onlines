@@ -637,9 +637,9 @@ void animate(){
         {
             cout<<"Touched";
             if(positions[0].x <= 0)
-                angles[0] = -atan(r.y/r.x)*(180/pi);
+                angles[0] = atan(r.y/r.x)*(180/pi);
             else
-                angles[0] = 180-atan(r.y/r.x)*(180/pi);
+                angles[0] = 180-atan(-r.y/r.x)*(180/pi);
         }
     }
 	//angle+=0.05;
