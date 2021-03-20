@@ -636,10 +636,13 @@ void animate(){
            (sqrt(positions[0].x * positions[0].x + positions[0].y * positions[0].y)+smallrad)<bigrad+0.5 && nar<=pi/2)
         {
             cout<<"Touched";
-            if(positions[0].x <= 0)
-                angles[0] = atan(r.y/r.x)*(180/pi);
-            else
-                angles[0] = 180-atan(-r.y/r.x)*(180/pi);
+            //if(nar == pi/2)
+            //    angles[0] = -angles[0];
+            angles[0] += nar*(180/pi);
+            //else if(positions[0].x <= 0)
+             //   angles[0] = atan(r.y/r.x)*(180/pi);
+            //else
+              //  angles[0] = 180-atan(r.y/r.x)*(180/pi);
         }
     }
 	//angle+=0.05;
