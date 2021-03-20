@@ -24,7 +24,8 @@ double angle,angle2,angle3,angle4;
 double bigrad, smallrad;
 int slices,stacks;
 double xv,yv,zv;
-
+double dx =0, dy=0;
+bool pause;
 
 struct point
 {
@@ -44,11 +45,15 @@ struct point
 };
 
 struct point positions[5];
-double xspeeds[5];
-double yspeeds[5];
+double speeds[5];
+double angles[5];
+int incount[5];
 
 
 struct point pos = point(0,0,200);
+struct point n;
+struct point d;
+struct point rf;
 
 struct point u = point(0,1,0);
 struct point r = point(1,0,0);
@@ -83,6 +88,10 @@ struct point rotate_vector(struct point v, struct point axis, struct point other
         return subpoint(p1,p2);
 };
 
+double vecval(struct point v)
+{
+    return sqrt(v.x*v.x +v.y*v.y + v.z*v.z);
+}
 
 
 void drawAxes()
@@ -467,38 +476,11 @@ void keyboardListener(unsigned char key, int x,int y){
 			drawgrid=1-drawgrid;
 			break;
 
-        case '1':
-            l = rotate_vector(l,u,r,-rdeg,false);
-			r = rotate_vector(r,u,l,-rdeg,true);
-			break;
-
-        case '2':
-			l = rotate_vector(l,u,r,rdeg,false);
-			r = rotate_vector(r,u,l,rdeg,true);
-			cout<<positions[0].x<<","<<positions[0].y<<"\n";
-			cout<<xspeeds[0]<<","<<yspeeds[0]<<"\n";
-			break;
-
-		case '3':
-			l = rotate_vector(l,r,u,rdeg,true);
-			u = rotate_vector(u,r,l,rdeg,false);
-			break;
-
-		case '4':
-			l = rotate_vector(l,r,u,-rdeg,true);
-			u = rotate_vector(u,r,l,-rdeg,false);
-			break;
-
-        case '5':
-			r = rotate_vector(r,l,u,rdeg,false);
-			u = rotate_vector(u,l,r,rdeg,true);
-			break;
-
-		case '6':
-			r = rotate_vector(r,l,u,-rdeg,false);
-			u = rotate_vector(u,l,r,-rdeg,true);
-			break;
-
+        case 'p':
+            pause = 1 - pause;
+            //dx = 0;
+            //dy = 0;
+            break;
 
 		default:
 			break;
@@ -509,12 +491,10 @@ void keyboardListener(unsigned char key, int x,int y){
 void specialKeyListener(int key, int x,int y){
 	switch(key){
 		case GLUT_KEY_DOWN:		//down arrow key
-            xspeeds[0] -= 0.001;
-            yspeeds[0] -= 0.001;
+            speeds[0] -= 0.001;
 			break;
 		case GLUT_KEY_UP:		// up arrow key
-            xspeeds[0] += 0.001;
-            yspeeds[0] += 0.001;
+            speeds[0] += 0.001;
 			break;
 
 		case GLUT_KEY_RIGHT:
@@ -627,8 +607,41 @@ void display(){
 
 
 void animate(){
-    positions[0].y += yspeeds[0];
-    positions[0].x += xspeeds[0];
+    if(!pause)
+    {
+        dx = speeds[0]*cos(angles[0]*(pi/180));
+        dy = speeds[0]*sin(angles[0]*(pi/180));
+
+        positions[0].x += dx;
+        positions[0].y += dy;
+    }
+
+    d.setpoint(dx , dy, 0);
+    n.setpoint(0-positions[0].x , 0-positions[0].y, 0);
+    double nv = vecval(n);
+    n.setpoint((0-positions[0].x)/nv, (0-positions[0].y)/nv, 0);
+    r = subpoint(d, scaler_mult(2*(dx*n.x + dy*n.y),n));
+    double nar = acos((n.x*r.x + n.y*r.y)/(vecval(n)*vecval(r)));
+
+    if((positions[0].x+smallrad >= slength/2 || positions[0].x-smallrad <= -slength/2) && (positions[0].y+smallrad >= slength/2 || positions[0].y-smallrad <= -slength/2))
+        angles[0] = 180+angles[0];
+    if(positions[0].x+smallrad >= slength/2 || positions[0].x-smallrad <= -slength/2)
+        angles[0] = 180-angles[0];
+    if(positions[0].y+smallrad >= slength/2 || positions[0].y-smallrad <= -slength/2)
+        angles[0] = -angles[0];
+
+    if(sqrt(positions[0].x * positions[0].x + positions[0].y * positions[0].y)+smallrad <= bigrad)
+    {
+        if((sqrt(positions[0].x * positions[0].x + positions[0].y * positions[0].y)+smallrad)>bigrad-0.5 &&
+           (sqrt(positions[0].x * positions[0].x + positions[0].y * positions[0].y)+smallrad)<bigrad+0.5 && nar<=pi/2)
+        {
+            cout<<"Touched";
+            if(positions[0].x <= 0)
+                angles[0] = -atan(r.y/r.x)*(180/pi);
+            else
+                angles[0] = 180-atan(r.y/r.x)*(180/pi);
+        }
+    }
 	//angle+=0.05;
 	//codes for any changes in Models, Camera
 	glutPostRedisplay();
@@ -636,6 +649,7 @@ void animate(){
 
 void init(){
 	//codes for initialization
+	cout<<acos(-1)*(180/pi);
 	drawgrid=0;
 	drawaxes=0;
 	rotatesphere = 0;
@@ -645,6 +659,7 @@ void init(){
 	angle2=0;
 	angle3=0;
 	angle4=0;
+	pause = 0;
 
 	bigrad = 35;
 	smallrad = 6;
@@ -654,9 +669,10 @@ void init(){
     {
         positions[k].x = -slength/2 + smallrad;
         positions[k].y = -slength/2 + smallrad;
-        xspeeds[k] =  ((double) rand() / (RAND_MAX))/200;
-        yspeeds[k] =  ((double) rand() / (RAND_MAX))/500;
-        cout<<xspeeds[k]<<","<<yspeeds[k]<<"\n";
+        speeds[k] =  0.001;
+        angles[k] =  ((int) rand()%90);
+        incount[k] = 0;
+        //cout<<xspeeds[k]<<","<<yspeeds[k]<<"\n";
     }
 
 	//clear the screen
