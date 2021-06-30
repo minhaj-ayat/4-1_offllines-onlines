@@ -1,0 +1,52 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+G:/4-1/CSE 409/Sessional/Offline_2/bitmap_image.hpp
+algorithm
+-
+cmath
+-
+cstdlib
+-
+fstream
+-
+iostream
+-
+iterator
+-
+limits
+-
+string
+-
+
+G:/4-1/CSE 409/Sessional/Offline_2/main.cpp
+iostream
+-
+stdlib.h
+-
+fstream
+-
+string
+-
+sstream
+-
+bits/stdc++.h
+-
+stack
+-
+vector
+-
+cmath
+-
+iomanip
+-
+algorithm
+-
+bitmap_image.hpp
+G:/4-1/CSE 409/Sessional/Offline_2/bitmap_image.hpp
+

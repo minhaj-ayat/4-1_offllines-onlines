@@ -2,14 +2,13 @@
 #include<stdlib.h>
 #include<iostream>
 #include<math.h>
-#include<time.h>
+#include<vector>
 
 #include <windows.h>
 #include <glut.h>
 
 #define pi (2*acos(0.0))
 
-#define slength 100
 #define konst 4
 #define rdeg 4
 
@@ -23,14 +22,7 @@ int rotatesphere;
 double angle,angle2,angle3,angle4;
 double bigrad, smallrad;
 int slices,stacks;
-double xv,yv,zv;
-double dx[5],dy[5];
-bool pause;
-bool created[5];
-bool entered[5];
-const clock_t btime = clock();
-double et;
-int all;
+
 
 struct point
 {
@@ -42,27 +34,16 @@ struct point
 	{
 	    x = a; y = b;  z = c;
 	}
-
-	void setpoint(double a,double b,double c)
-	{
-	    x = a; y = b;  z = c;
-	}
 };
 
-struct point positions[5];
-double speeds[5];
-double angles[5];
-int incount[5];
-
-
-struct point pos = point(0,0,200);
-struct point n;
-struct point d;
-struct point rf;
+struct point pos = point(50,10,-400);
 
 struct point u = point(0,1,0);
 struct point r = point(1,0,0);
 struct point l = point(0,0,1);
+
+struct point p1,p2;
+vector<struct point> vp;
 
 struct point addpoint(struct point p1, struct point p2)
 {
@@ -93,15 +74,6 @@ struct point rotate_vector(struct point v, struct point axis, struct point other
         return subpoint(p1,p2);
 };
 
-double vecval(struct point v)
-{
-    return sqrt(v.x*v.x +v.y*v.y + v.z*v.z);
-}
-
-double dist(struct point p1, struct point p2)
-{
-    return sqrt((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y));
-}
 
 
 void drawAxes()
@@ -149,55 +121,13 @@ void drawGrid()
 
 void drawSquare(double a)
 {
-    glColor3f(0.0,1.0,0.0);
+    //glColor3f(1.0,0.0,0.0);
 	glBegin(GL_QUADS);{
 		glVertex3f( a, a,2);
 		glVertex3f( a,-a,2);
 		glVertex3f(-a,-a,2);
 		glVertex3f(-a, a,2);
 	}glEnd();
-}
-
-void drawmySquare(double a)
-{
-    glColor3f(0, 1, 0);
-    glBegin(GL_LINES);{
-        glVertex3f( a/2,a/2,0);
-        glVertex3f(-a/2,a/2,0);
-
-        glVertex3f( a/2,a/2,0);
-        glVertex3f(a/2,-a/2,0);
-
-        glVertex3f( -a/2,a/2,0);
-        glVertex3f(-a/2,-a/2,0);
-
-        glVertex3f( -a/2,-a/2,0);
-        glVertex3f(a/2,-a/2,0);
-    }glEnd();
-}
-
-
-void drawmyCircle(double radius,int segments)
-{
-    int i;
-    struct point points[100];
-    //generate points
-    for(i=0;i<=segments;i++)
-    {
-        points[i].x=radius*cos(((double)i/(double)segments)*2*pi);
-        points[i].y=radius*sin(((double)i/(double)segments)*2*pi);
-    }
-    //draw segments using generated points
-    for(i=0;i<segments;i++)
-    {
-        //glColor3f(1,0,0);
-        glBegin(GL_LINES);
-        {
-			glVertex3f(points[i].x,points[i].y,0);
-			glVertex3f(points[i+1].x,points[i+1].y,0);
-        }
-        glEnd();
-    }
 }
 
 
@@ -441,31 +371,46 @@ void drawSphere(double radius,int slices,int stacks)
 
 void mydraw()
 {
-    drawmySquare(slength);
-    glColor3f(1,0,0);
-    drawmyCircle(bigrad,slices);
+    //glColor3f(1,1,1);
+    glPushMatrix();
+    {
+        glRotatef(angle,0,1,0);
+        drawupperSphere(bigrad,slices,stacks);
+        //drawlowerSphere(50,20,15);
+    }
 
-    glColor3f(1,0.5,0);
-    /*for(int c=0;c<5;c++)
+    {
+        glRotatef(angle2,1,0,0);
+        drawlowerSphere(bigrad,slices,stacks);
+    }
+
+    {
+        glTranslatef(0,0,-(bigrad+smallrad));
+        glRotatef(angle3,1,0,0);
+        glRotatef(angle4,0,0,1);
+        drawupperSphere(smallrad,slices,stacks);
+        for(int k=1;k<=10;k++)
+        {
+            drawCyllinder(smallrad,slices,stacks);
+            glTranslatef(0,0,-(smallrad));
+        }
+        drawinvertSphere(smallrad,slices,stacks);
+    }
+
+    {
+        glPopMatrix();
+        glColor3f(1,1,0);
+        glTranslatef(0,0,-(2*bigrad+11*smallrad+400));
+        drawSquare(250);
+    }
+
+    for (int i = 0; i < vp.size(); i++)
     {
         glPushMatrix();
-        glTranslatef(positions[c].x,  positions[c].y,  0);
-        drawmyCircle(smallrad,slices);
+        glColor3f(1,0,0);
+        glTranslatef(vp.at(i).x,vp.at(i).y,vp.at(i).z+750);
+        drawSquare(10);
         glPopMatrix();
-    }*/
-
-    et = (clock() - btime)/CLOCKS_PER_SEC;
-    for(int c=0;c<5;c++)
-    {
-        if(et >= c)
-        {
-            //cout<<"hhh";
-            glPushMatrix();
-            glTranslatef(positions[c].x,  positions[c].y,  0);
-            drawmyCircle(smallrad,slices);
-            glPopMatrix();
-            created[c] = 1;
-        }
     }
 }
 
@@ -505,10 +450,74 @@ void keyboardListener(unsigned char key, int x,int y){
 			drawgrid=1-drawgrid;
 			break;
 
-        case 'p':
-            pause = 1 - pause;
-            //dx = 0;
-            //dy = 0;
+        case '1':
+            l = rotate_vector(l,u,r,-rdeg,false);
+			r = rotate_vector(r,u,l,-rdeg,true);
+			break;
+
+        case '2':
+			l = rotate_vector(l,u,r,rdeg,false);
+			r = rotate_vector(r,u,l,rdeg,true);
+			cout<<pos.x<<","<<pos.y<<","<<pos.z<<"\n";
+			break;
+
+		case '3':
+			l = rotate_vector(l,r,u,rdeg,true);
+			u = rotate_vector(u,r,l,rdeg,false);
+			break;
+
+		case '4':
+			l = rotate_vector(l,r,u,-rdeg,true);
+			u = rotate_vector(u,r,l,-rdeg,false);
+			break;
+
+        case '5':
+			r = rotate_vector(r,l,u,rdeg,false);
+			u = rotate_vector(u,l,r,rdeg,true);
+			break;
+
+		case '6':
+			r = rotate_vector(r,l,u,-rdeg,false);
+			u = rotate_vector(u,l,r,-rdeg,true);
+			break;
+
+
+        case 'q':
+            angle+=5;
+            if(angle >= 45) angle = 45;
+            break;
+
+        case 'w':
+            angle-=5;
+            if(angle <= -45) angle = -45;
+            break;
+
+        case 'e':
+            angle2+=5;
+            if(angle2 >= 45) angle2 = 45;
+            break;
+
+        case 'r':
+            angle2-=5;
+            if(angle2 <= -45) angle2 = -45;
+            break;
+
+        case 'a':
+            angle3+=5;
+            if(angle3 >= 35) angle3 = 35;
+            break;
+
+        case 's':
+            angle3-=5;
+            if(angle3 <= -35) angle3 = -35;
+            break;
+
+        case 'd':
+            angle4+=5;
+            break;
+
+        case 'f':
+            angle4-=5;
             break;
 
 		default:
@@ -520,34 +529,24 @@ void keyboardListener(unsigned char key, int x,int y){
 void specialKeyListener(int key, int x,int y){
 	switch(key){
 		case GLUT_KEY_DOWN:		//down arrow key
-            for(int c=0;c<5;c++)
-            {
-                speeds[c] -= 0.001;
-                if(speeds[c]<=0.001)
-                    speeds[c] = 0.001;
-            }
+			pos = subpoint(pos,scaler_mult(konst,l));
 			break;
 		case GLUT_KEY_UP:		// up arrow key
-            for(int c=0;c<5;c++)
-            {
-                speeds[c] += 0.001;
-                if(speeds[c]>=0.1)
-                    speeds[c] = 0.1;
-            }
+			pos = addpoint(pos,scaler_mult(konst,l));
 			break;
 
 		case GLUT_KEY_RIGHT:
-
+			pos = subpoint(pos,scaler_mult(konst,r));
 			break;
 		case GLUT_KEY_LEFT:
-
+			pos = addpoint(pos,scaler_mult(konst,r));
 			break;
 
 		case GLUT_KEY_PAGE_UP:
-
+		    pos = addpoint(pos,scaler_mult(konst,u));
 			break;
 		case GLUT_KEY_PAGE_DOWN:
-
+		    pos = subpoint(pos,scaler_mult(konst,u));
 			break;
 
 		case GLUT_KEY_INSERT:
@@ -567,6 +566,27 @@ void specialKeyListener(int key, int x,int y){
 void mouseListener(int button, int state, int x, int y){	//x, y is the x-y of the screen (2D)
 	switch(button){
 		case GLUT_LEFT_BUTTON:
+		    if(state == GLUT_DOWN){// 2 times?? in ONE click? -- solution is checking DOWN or UP
+                double k;
+                struct point p3;
+				p1 = point();
+				p1.x = -30*sin(angle*(pi/180));
+				p1.y = 30*sin(angle2*(pi/180));
+				p1.z = -30*cos(angle*(pi/180)) * cos(angle2*(pi/180));
+
+				p2 = point();
+				p2.x = -30*sin(angle*(pi/180));
+				p2.y = 30*sin((angle2+angle3)*(pi/180));
+				p2.z = -30*cos(angle*(pi/180)) * cos((angle2+angle3)*(pi/180));
+                k = (-p1.z-(2*bigrad+11*smallrad+400))/p2.z;
+                p3 = addpoint(p1, scaler_mult(k,p2));
+
+                if(p3.x>=-125 && p3.x<=125 && p3.y>=-125 && p3.y<=125)
+                {
+                    vp.push_back(p3);
+                    cout<<"Hit at "<<p3.x<<","<<p3.y<<","<<p3.z<<"\n";
+                }
+			}
 			break;
 
 		case GLUT_RIGHT_BUTTON:
@@ -610,7 +630,7 @@ void display(){
 
 	//gluLookAt(100,100,100,	0,0,0,	0,0,1);
 	//gluLookAt(200*cos(cameraAngle), 200*sin(cameraAngle), cameraHeight,		0,0,0,		0,0,1);
-	gluLookAt(pos.x,pos.y,pos.z,    0,0,0,	u.x,u.y,u.z);
+	gluLookAt(pos.x,pos.y,pos.z,    pos.x+l.x,pos.y+l.y,pos.z+l.z,	u.x,u.y,u.z);
 
 
 	//again select MODEL-VIEW
@@ -646,69 +666,6 @@ void display(){
 
 
 void animate(){
-    for(int c=0; c<5;c++)
-    {
-        d.setpoint(dx[c] , dy[c], 0);
-        n.setpoint(0-positions[c].x , 0-positions[c].y, 0);
-        double nv = vecval(n);
-        n.setpoint((0-positions[c].x)/nv, (0-positions[c].y)/nv, 0);
-        r = subpoint(d, scaler_mult(2*(dx[c]*n.x + dy[c]*n.y),n));
-        double nar = acos((n.x*r.x + n.y*r.y)/(nv*vecval(r)));
-
-        if((positions[c].x+smallrad >= slength/2 || positions[c].x-smallrad <= -slength/2) && (positions[c].y+smallrad >= slength/2 || positions[c].y-smallrad <= -slength/2))
-            angles[c] = 180+angles[c];
-        if(positions[c].x+smallrad >= slength/2 || positions[c].x-smallrad <= -slength/2)
-            angles[c] = 180-angles[c];
-        if(positions[c].y+smallrad >= slength/2 || positions[c].y-smallrad <= -slength/2)
-            angles[c] = -angles[c];
-
-        if(sqrt(positions[c].x * positions[c].x + positions[c].y * positions[c].y)+smallrad <= bigrad)
-        {
-            entered[c] = 1;
-            if((sqrt(positions[c].x * positions[c].x + positions[c].y * positions[c].y)+smallrad)>bigrad-1 &&
-               (sqrt(positions[c].x * positions[c].x + positions[c].y * positions[c].y)+smallrad)<bigrad+1 && nar<=pi/2)
-            {
-                angles[c] += nar*(180/pi);
-            }
-
-            for(int j=0; j<5; j++)
-            {
-                double dst,nv2,nar2;
-                struct point nn,dd,rr;
-                if(c!=j && entered[j])
-                {
-                    dst = dist(positions[c],positions[j]);
-                    if(2*smallrad > dst-0.1 && 2*smallrad < dst + 0.1)
-                    {
-                        nn = subpoint(positions[c],positions[j]);
-                        nv2 = vecval(nn);
-                        nn.setpoint(nn.x/nv2, nn.y/nv2, 0);
-                        rr = subpoint(d, scaler_mult(2*(dx[c]*nn.x + dy[c]*nn.y),nn));
-                        nar2 = acos((nn.x*rr.x + nn.y*rr.y)/(nv2*vecval(rr)));
-                        if(nar2<=pi/2)
-                            angles[c] += nar2*(180/pi);
-
-                        nn = subpoint(positions[j],positions[c]);
-                        nv2 = vecval(nn);
-                        nn.setpoint(nn.x/nv2, nn.y/nv2, 0);
-                        rr = subpoint(d, scaler_mult(2*(dx[j]*nn.x + dy[j]*nn.y),nn));
-                        nar2 = acos((nn.x*rr.x + nn.y*rr.y)/(nv2*vecval(rr)));
-                        if(nar2<=pi/2)
-                            angles[j] += nar2*(180/pi);
-                    }
-                }
-            }
-        }
-
-        if(!pause && created[c])
-        {
-            dx[c] = speeds[c]*cos(angles[c]*(pi/180));
-            dy[c] = speeds[c]*sin(angles[c]*(pi/180));
-
-            positions[c].x += dx[c];
-            positions[c].y += dy[c];
-        }
-    }
 	//angle+=0.05;
 	//codes for any changes in Models, Camera
 	glutPostRedisplay();
@@ -717,7 +674,7 @@ void animate(){
 void init(){
 	//codes for initialization
 	drawgrid=0;
-	drawaxes=0;
+	drawaxes=1;
 	rotatesphere = 0;
 	cameraHeight=150.0;
 	cameraAngle=1.0;
@@ -725,27 +682,10 @@ void init(){
 	angle2=0;
 	angle3=0;
 	angle4=0;
-	pause = 0;
-
-    all = 0;
-    et = 0;
-	bigrad = 35;
-	smallrad = 6;
-	slices = 30;
-	xv=0;yv=0;zv=0;
-	for(int k =0; k<5; k++)
-    {
-        positions[k].x = -slength/2 + smallrad;
-        positions[k].y = -slength/2 + smallrad;
-        speeds[k] =  0.005;
-        angles[k] =  ((int) rand()%90);
-        incount[k] = 0;
-        dx[k] = 0;
-        dy[k] = 0;
-        created[k] = 0;
-        entered[k] = 0;
-        //cout<<xspeeds[k]<<","<<yspeeds[k]<<"\n";
-    }
+	bigrad = 50;
+	smallrad = 20;
+	slices = 50;
+	stacks = 70;
 
 	//clear the screen
 	glClearColor(0,0,0,0);
@@ -760,17 +700,14 @@ void init(){
 	glLoadIdentity();
 
 	//give PERSPECTIVE parameters
-	gluPerspective(400,	1,	1,	10000.0);
+	gluPerspective(400,	1.2,	1,	10000.0);
 	//field of view in the Y (vertically)
 	//aspect ratio that determines the field of view in the X direction (horizontally)
 	//near distance
 	//far distance
-	//et = (clock() - btime)/CLOCKS_PER_SEC;
-	//cout<<et;
 }
 
 int main(int argc, char **argv){
-    srand(time(0));
 	glutInit(&argc,argv);
 	glutInitWindowSize(500, 500);
 	glutInitWindowPosition(0, 0);
