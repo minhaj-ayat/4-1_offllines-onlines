@@ -262,7 +262,7 @@ def decrypt():
     curr_round = 0
     add_round_key(curr_round, True)
     curr_round = curr_round + 1
-    print(state_matrix)
+    #print(state_matrix)
 
     while curr_round < 11:
         shift_rows(True)
@@ -271,7 +271,7 @@ def decrypt():
         if curr_round != 10:
             mix_columns(True)
         curr_round = curr_round + 1
-        print(state_matrix)
+        #print(state_matrix)
 
 
 def matrix_to_text(mat, inv, t):
@@ -297,9 +297,9 @@ def matrix_to_text(mat, inv, t):
             for j in range(4):
                 st = st + (mat[j][i])
 
-        print(st + ("  [In HEX]"))
+        #print(st + ("  [In HEX]"))
         ft = binascii.unhexlify(st)
-        print(ft)
+        #print(ft)
         return ft
 
 
@@ -382,11 +382,11 @@ def process_file2():
         stop2 = timeit.default_timer()
         final_val += matrix_to_text(state_matrix, True, False)
 
-        print("\nEncryption Time:")
+        """print("\nEncryption Time:")
         print("Key Scheduling time : " + str(stop - start))
         print("Encryption time : " + str(stop1 - start1))
         print("Decryption time : " + str(stop2 - start2))
-        print("\n")
+        print("\n")"""
 
     file.close()
     print(final_val)

@@ -2,7 +2,6 @@
 #include<stdlib.h>
 #include<iostream>
 #include<math.h>
-#include<vector>
 
 #include <windows.h>
 #include <glut.h>
@@ -41,9 +40,6 @@ struct point pos = point(50,10,-400);
 struct point u = point(0,1,0);
 struct point r = point(1,0,0);
 struct point l = point(0,0,1);
-
-struct point p1,p2;
-vector<struct point> vp;
 
 struct point addpoint(struct point p1, struct point p2)
 {
@@ -403,15 +399,6 @@ void mydraw()
         glTranslatef(0,0,-(2*bigrad+11*smallrad+400));
         drawSquare(250);
     }
-
-    for (int i = 0; i < vp.size(); i++)
-    {
-        glPushMatrix();
-        glColor3f(1,0,0);
-        glTranslatef(vp.at(i).x,vp.at(i).y,vp.at(i).z+750);
-        drawSquare(10);
-        glPopMatrix();
-    }
 }
 
 void drawSS()
@@ -566,27 +553,6 @@ void specialKeyListener(int key, int x,int y){
 void mouseListener(int button, int state, int x, int y){	//x, y is the x-y of the screen (2D)
 	switch(button){
 		case GLUT_LEFT_BUTTON:
-		    if(state == GLUT_DOWN){// 2 times?? in ONE click? -- solution is checking DOWN or UP
-                double k;
-                struct point p3;
-				p1 = point();
-				p1.x = -30*sin(angle*(pi/180));
-				p1.y = 30*sin(angle2*(pi/180));
-				p1.z = -30*cos(angle*(pi/180)) * cos(angle2*(pi/180));
-
-				p2 = point();
-				p2.x = -30*sin(angle*(pi/180));
-				p2.y = 30*sin((angle2+angle3)*(pi/180));
-				p2.z = -30*cos(angle*(pi/180)) * cos((angle2+angle3)*(pi/180));
-                k = (-p1.z-(2*bigrad+11*smallrad+400))/p2.z;
-                p3 = addpoint(p1, scaler_mult(k,p2));
-
-                if(p3.x>=-125 && p3.x<=125 && p3.y>=-125 && p3.y<=125)
-                {
-                    vp.push_back(p3);
-                    cout<<"Hit at "<<p3.x<<","<<p3.y<<","<<p3.z<<"\n";
-                }
-			}
 			break;
 
 		case GLUT_RIGHT_BUTTON:
